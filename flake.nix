@@ -74,7 +74,7 @@
             propagatedBuildInputs = with prev; [
               marshmallow
               tox
-              setuptools
+              #setuptools
             ];
 
             nativeCheckInputs = [
@@ -327,9 +327,17 @@
           html5lib
         ];
       };
-    in {
-      packages.${system} = {
+      ludwig-app = python.pkgs.toPythonApplication ludwig;
+    in rec {
+      packages = {
         ludwig = ludwig;
+      };
+      apps = {
+        ludwig-cli = {
+          type = "app";
+          program = "${ludwig-app}/bin/ludwig";
+        };
+        default = apps.ludwig-cli;
       };
       defaultPackage = ludwig;
     });
