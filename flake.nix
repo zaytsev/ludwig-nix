@@ -340,5 +340,8 @@
         default = apps.ludwig-cli;
       };
       defaultPackage = ludwig;
+      overlays.default = self: prev: {
+        ludwig = ludwig-app;
+      };
     });
 }
