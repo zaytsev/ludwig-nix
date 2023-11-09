@@ -644,6 +644,179 @@
               ];
             };
           };
+
+          horovod = final.buildPythonPackage rec {
+            pname = "horovod";
+            version = "0.28.1";
+
+            src = pkgs.fetchFromGitHub {
+              owner = pname;
+              repo = pname;
+              rev = "v${version}";
+              hash = "sha256-1Vv5Qen4ChqzHrAbNNAyP4x9YrnzwIYH1N6f5+0nvs4=";
+              #hash = pkgs.lib.fakeHash;
+
+              fetchSubmodules = true;
+            };
+
+            nativeBuildInputs = with pkgs; [
+              cmake
+              pkg-config
+              ninja
+            ];
+
+            dontUseCmakeConfigure = true;
+
+            propagatedBuildInputs = with final; [
+              cloudpickle
+              psutil
+              pyyaml
+              packaging
+              cffi
+            ];
+
+            passthru.optional-dependencies = with final; {
+              tensorflow-deps = [
+                tensorflow
+              ];
+              tensorflow-cpu-deps = [
+                tensorflowWithoutCuda
+              ];
+              tensorflow-gpu-deps = [
+                tensorflowWithCuda
+              ];
+              keras-deps = [
+                keras
+              ];
+              pytorch-deps = [
+                torch
+              ];
+              mxnet-deps = [
+                mxnet
+              ];
+              ray-deps = [
+                ray
+                aioredis
+                google-api-core
+              ];
+              # TODO spark deps
+            };
+
+            doCheck = false;
+
+            nativeCheckInputs = with final;
+              [
+                pytestCheckHook
+                mock
+                pytest-forked
+                pytest-subtests
+                parameterized
+              ]
+              ++ passthru.optional-dependencies.tensorflow-deps
+              ++ passthru.optional-dependencies.tensorflow-cpu-deps
+              ++ passthru.optional-dependencies.keras-deps
+              ++ passthru.optional-dependencies.ray-deps
+              ++ passthru.optional-dependencies.mxnet-deps;
+          };
+
+          progress-table = final.buildPythonPackage rec {
+            pname = "progress-table";
+            version = "0.1.27";
+
+            src = final.fetchPypi {
+              inherit pname version;
+              hash = "sha256-x+i8bD0MAowy9oNLZcIcPGAQGvYrKc8ffvZ8ElA9Zhs=";
+            };
+
+            propagatedBuildInputs = with final; [
+              colorama
+              pandas
+            ];
+
+            doCheck = false;
+          };
+
+          predibase-api = final.buildPythonPackage rec {
+            pname = "predibase-api";
+            version = "2023.11.2";
+
+            src = final.fetchPypi {
+              inherit pname version;
+              hash = "sha256-8yr+tcMjPppEtk/x+A2Y0ym1qyYlNumLcqbiQ+Mcc80=";
+            };
+
+            propagatedBuildInputs = with final; [
+              protobuf3
+            ];
+          };
+
+          ipyplot = final.buildPythonPackage rec {
+            pname = "ipyplot";
+            version = "1.1.1";
+
+            src = final.fetchPypi {
+              inherit pname version;
+              hash = "sha256-xYB0VHI8gwWB8kqXeEW0b93YlsK3c/stgwx7NL8StBw=";
+            };
+
+            propagatedBuildInputs = with final; [
+              ipython
+              numpy
+              pillow
+              #bump2version
+              shortuuid
+              pandas
+            ];
+
+            doCheck = false;
+
+            nativeCheckInputs = with final; [
+              pytestCheckHook
+              pytest-cov
+            ];
+          };
+
+          predibase = final.buildPythonPackage rec {
+            pname = "predibase";
+            version = "2023.11.2";
+            format = "wheel";
+
+            src = final.fetchPypi {
+              inherit pname version;
+              hash = "sha256-wnIDLIeUYWqTu6OY7i67JZxxFwbfrAFtmbo+CdBFPuA=";
+            };
+
+            nativeBuildInputs = with final; [
+              pythonRelaxDepsHook
+            ];
+
+            pythonRelaxDeps = [
+              "dataclasses-json"
+            ];
+
+            propagatedBuildInputs = with final; [
+              progress-table
+              deprecation
+              websockets
+              typer
+              tritonclient
+              tqdm
+              tabulate
+              pyjwt
+              protobuf3
+              predibase-api
+              ipython
+              ipyplot
+              pyyaml
+              pyarrow
+              dataclasses-json
+              rich
+              urllib3
+              requests
+              pandas
+              python-dateutil
+            ];
+          };
         };
       };
 
@@ -771,7 +944,8 @@
           ++ passthru.optional-dependencies.distributed
           ++ passthru.optional-dependencies.serve
           ++ passthru.optional-dependencies.tree
-          ++ passthru.optional-dependencies.explain;
+          ++ passthru.optional-dependencies.explain
+          ++ passthru.optional-dependencies.extra;
 
         passthru.optional-dependencies = with python.pkgs; {
           llm = [
@@ -784,6 +958,13 @@
           explain = [
             captum
           ];
+          extra =
+            [
+              horovod
+              # TODO modin
+              predibase
+            ]
+            ++ horovod.passthru.optional-dependencies.pytorch-deps;
           tree = [
             lightgbm
             lightgbm-ray
@@ -794,6 +975,7 @@
               ray
               dask
             ]
+            ++ python.pkgs.dask.passthru.optional-dependencies.dataframe
             ++ python.pkgs.ray.passthru.optional-dependencies.tune-deps
             ++ python.pkgs.ray.passthru.optional-dependencies.serve-deps
             ++ python.pkgs.ray.passthru.optional-dependencies.data-deps;
