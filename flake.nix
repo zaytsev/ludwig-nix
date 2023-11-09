@@ -593,6 +593,57 @@
               ++ final.ray.passthru.optional-dependencies.tune-deps
               ++ final.ray.passthru.optional-dependencies.data-deps;
           };
+
+          hummingbird-ml = final.buildPythonPackage rec {
+            pname = "hummingbird-ml";
+            version = "0.4.9";
+
+            src = final.fetchPypi {
+              inherit pname version;
+              hash = "sha256-owN/oV2eG9EaKP0rX/P4h/G6d3VIfTmwJyN9ePNSOxw";
+            };
+
+            propagatedBuildInputs = with final; [
+              numpy #>=1.15
+              onnxconverter-common #>=1.6.0
+              scipy
+              scikit-learn
+              torch #>1.7.0
+              psutil
+              dill
+              protobuf3 #>=3.20.2
+            ];
+
+            #preCheck = ''
+            #  export HOME=$(mktemp -d)
+            #'';
+
+            disabledTestPaths = [
+              # fails in sandbox
+              "tests/test_sklearn_kneighbors.py"
+            ];
+
+            nativeCheckInputs = with final; [
+              pytestCheckHook
+              flake8
+              coverage
+              pkgs.pre-commit
+            ];
+
+            passthru.optional-dependencies = with final; {
+              onnx-deps = [
+                onnxruntime #>=1.0.0,
+                onnxmltools #>=1.6.0,<=1.11.0,
+                skl2onnx #>=1.7.0
+              ];
+              extra-deps = [
+                xgboost #>=0.90<2.0.0
+                lightgbm #>=2.2<=3.3.5
+                holidays #==0.24
+                prophet #==1.1
+              ];
+            };
+          };
         };
       };
 
@@ -698,6 +749,10 @@
           "ludwig"
         ];
 
+        preCheck = ''
+          export HOME=$(mktemp -d)
+        '';
+
         nativeCheckInputs = with python.pkgs;
           [
             pytestCheckHook
@@ -732,7 +787,7 @@
           tree = [
             lightgbm
             lightgbm-ray
-            #hummingbird-ml#>=0.4.8
+            hummingbird-ml #>=0.4.8
           ];
           distributed =
             [
