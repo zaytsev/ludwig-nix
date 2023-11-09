@@ -817,187 +817,187 @@
               python-dateutil
             ];
           };
-        };
 
-        ludwig = python.pkgs.buildPythonPackage rec {
-          name = "ludwig";
-          version = "0.9.0.dev0";
+          ludwig = final.buildPythonPackage rec {
+            name = "ludwig";
+            version = "0.9.0.dev0";
 
-          src = pkgs.fetchFromGitHub {
-            owner = "ludwig-ai";
-            repo = "ludwig";
-            #rev = "v${version}";
-            rev = "7458885398dcd2f220ad3f508883fb16cecd6a04";
-            hash = "sha256-U4Qtbrl6HPbWGAnQYWRRQDe+20Q4w5DdCHCaRkPgxuQ=";
-            #hash = pkgs.lib.fakeHash;
-          };
+            src = pkgs.fetchFromGitHub {
+              owner = "ludwig-ai";
+              repo = "ludwig";
+              #rev = "v${version}";
+              rev = "7458885398dcd2f220ad3f508883fb16cecd6a04";
+              hash = "sha256-U4Qtbrl6HPbWGAnQYWRRQDe+20Q4w5DdCHCaRkPgxuQ=";
+              #hash = pkgs.lib.fakeHash;
+            };
 
-          #--replace "protobuf==3.20.3" "protobuf" \
-          patchPhase = ''
-            substituteInPlace requirements.txt \
-              --replace "bitsandbytes<0.41.0" "bitsandbytes" \
-              --replace "psutil==5.9.4" "psutil~=5.9.5" \
-              --replace "marshmallow-dataclass==8.5.4" "marshmallow-dataclass" \
-              --replace "jsonschema>=4.5.0,<4.7" "jsonschema" \
-              --replace "PyYAML>=3.12,<6.0.1,!=5.4.*" "PyYAML>=3.12,!=5.4.*" \
+            #--replace "protobuf==3.20.3" "protobuf" \
+            patchPhase = ''
+              substituteInPlace requirements.txt \
+                --replace "bitsandbytes<0.41.0" "bitsandbytes" \
+                --replace "psutil==5.9.4" "psutil~=5.9.5" \
+                --replace "marshmallow-dataclass==8.5.4" "marshmallow-dataclass" \
+                --replace "jsonschema>=4.5.0,<4.7" "jsonschema" \
+                --replace "PyYAML>=3.12,<6.0.1,!=5.4.*" "PyYAML>=3.12,!=5.4.*" \
 
-            substituteInPlace requirements_distributed.txt \
-              --replace "ray[default,data,serve,tune]>=2.2.0,<2.4" "ray[default,data,serve,tune]>=2.2.0" \
-          '';
+              substituteInPlace requirements_distributed.txt \
+                --replace "ray[default,data,serve,tune]>=2.2.0,<2.4" "ray[default,data,serve,tune]>=2.2.0" \
+            '';
 
-          doCheck = false; # TODO investigate integration tests failures
-          catchConflicts = false;
+            doCheck = false; # TODO investigate integration tests failures
+            catchConflicts = false;
 
-          propagatedBuildInputs = with python.pkgs;
-            [
-              cython #>=0.25
-              h5py #>=2.6,!=3.0.0
-              numpy #>=1.15
-              pandas #>=1.0,!=1.1.5
-              scipy #>=0.18
-              tabulate #>=0.7
-              scikit-learn
-              tqdm
-              torch #>=1.13.0
-              torchaudio
-              torchtext
-              torchvision
-              torchdata
-              pydantic #<2.0
-              transformers #>=4.33.2
-              tokenizers #>=0.13.3
-              spacy #>=2.3
-              pyyaml #>=3.12,<6.0.1,!=5.4.* #Exlude PyYAML 5.4.* due to incompatibility with awscli
-              absl-py
-              kaggle
-              requests
-              fsspec #[http]<2023.10.0
-              dataclasses-json
-              jsonschema #>=4.5.0,<4.7
-              marshmallow
-              marshmallow-jsonschema
-              marshmallow-dataclass #==8.5.4
-              tensorboard
-              nltk # Required for rouge scores.
-              torchmetrics #>=0.11.0
-              torchinfo
-              filelock
-              psutil #==5.9.4
-              protobuf3 #==3.20.3
-              py-cpuinfo #==9.0.0
-              gpustat
-              rich #~=12.4.4
-              packaging
-              retry
-
-              #llm
-
-              # required for TransfoXLTokenizer when using transformer_xl
-              sacremoses
-              sentencepiece
-
-              datasets
-              dask
-              huggingface-hub
-
-              commonmark
-
-              bitsandbytes
-
-              getdaft
-
-              xlwt
-              xlrd
-              pyarrow
-              pyxlsb
-              openpyxl
-              xlsxwriter
-              lxml
-              html5lib
-            ]
-            ++ python.pkgs.fsspec.passthru.optional-dependencies.http;
-
-          pythonImportsCheck = [
-            "ludwig"
-          ];
-
-          preCheck = ''
-            export HOME=$(mktemp -d)
-          '';
-
-          nativeCheckInputs = with python.pkgs;
-            [
-              pytestCheckHook
-              pytest
-              pytest-timeout
-              wget
-              six #>=1.13.0
-              #aim
-              wandb #<0.12.11
-              #comet_ml
-              mlflow
-            ]
-            ++ passthru.optional-dependencies.llm
-            ++ passthru.optional-dependencies.hyperopt
-            ++ passthru.optional-dependencies.viz
-            ++ passthru.optional-dependencies.distributed
-            ++ passthru.optional-dependencies.serve
-            ++ passthru.optional-dependencies.tree
-            ++ passthru.optional-dependencies.explain
-            ++ passthru.optional-dependencies.extra;
-
-          passthru.optional-dependencies = with python.pkgs; {
-            llm = [
-              peft
-              accelerate
-              sentence-transformers
-              faiss
-              loralib
-            ];
-            explain = [
-              captum
-            ];
-            extra =
+            propagatedBuildInputs = with python.pkgs;
               [
-                horovod
-                # TODO modin
-                predibase
-              ]
-              ++ horovod.passthru.optional-dependencies.pytorch-deps;
-            tree = [
-              lightgbm
-              lightgbm-ray
-              hummingbird-ml #>=0.4.8
-            ];
-            distributed =
-              [
-                ray
+                cython #>=0.25
+                h5py #>=2.6,!=3.0.0
+                numpy #>=1.15
+                pandas #>=1.0,!=1.1.5
+                scipy #>=0.18
+                tabulate #>=0.7
+                scikit-learn
+                tqdm
+                torch #>=1.13.0
+                torchaudio
+                torchtext
+                torchvision
+                torchdata
+                pydantic #<2.0
+                transformers #>=4.33.2
+                tokenizers #>=0.13.3
+                spacy #>=2.3
+                pyyaml #>=3.12,<6.0.1,!=5.4.* #Exlude PyYAML 5.4.* due to incompatibility with awscli
+                absl-py
+                kaggle
+                requests
+                fsspec #[http]<2023.10.0
+                dataclasses-json
+                jsonschema #>=4.5.0,<4.7
+                marshmallow
+                marshmallow-jsonschema
+                marshmallow-dataclass #==8.5.4
+                tensorboard
+                nltk # Required for rouge scores.
+                torchmetrics #>=0.11.0
+                torchinfo
+                filelock
+                psutil #==5.9.4
+                protobuf3 #==3.20.3
+                py-cpuinfo #==9.0.0
+                gpustat
+                rich #~=12.4.4
+                packaging
+                retry
+
+                #llm
+
+                # required for TransfoXLTokenizer when using transformer_xl
+                sacremoses
+                sentencepiece
+
+                datasets
                 dask
+                huggingface-hub
+
+                commonmark
+
+                bitsandbytes
+
+                getdaft
+
+                xlwt
+                xlrd
+                pyarrow
+                pyxlsb
+                openpyxl
+                xlsxwriter
+                lxml
+                html5lib
               ]
-              ++ python.pkgs.dask.passthru.optional-dependencies.dataframe
-              ++ python.pkgs.ray.passthru.optional-dependencies.tune-deps
-              ++ python.pkgs.ray.passthru.optional-dependencies.serve-deps
-              ++ python.pkgs.ray.passthru.optional-dependencies.data-deps;
-            hyperopt =
+              ++ python.pkgs.fsspec.passthru.optional-dependencies.http;
+
+            pythonImportsCheck = [
+              "ludwig"
+            ];
+
+            preCheck = ''
+              export HOME=$(mktemp -d)
+            '';
+
+            nativeCheckInputs = with python.pkgs;
               [
-                ray
-                hyperopt
+                pytestCheckHook
+                pytest
+                pytest-timeout
+                wget
+                six #>=1.13.0
+                #aim
+                wandb #<0.12.11
+                #comet_ml
+                mlflow
               ]
-              ++ (with python.pkgs.ray.passthru.optional-dependencies; [(tune-deps ++ serve-deps)]);
-            serve = [
-              uvicorn
-              httpx
-              fastapi
-              python-multipart
-              # TODO
-              #neuropod #==0.3.0rc6
-            ];
-            viz = [
-              matplotlib
-              seaborn
-              hiplot
-              ptitprince
-            ];
+              ++ passthru.optional-dependencies.llm
+              ++ passthru.optional-dependencies.hyperopt
+              ++ passthru.optional-dependencies.viz
+              ++ passthru.optional-dependencies.distributed
+              ++ passthru.optional-dependencies.serve
+              ++ passthru.optional-dependencies.tree
+              ++ passthru.optional-dependencies.explain
+              ++ passthru.optional-dependencies.extra;
+
+            passthru.optional-dependencies = with python.pkgs; {
+              llm = [
+                peft
+                accelerate
+                sentence-transformers
+                faiss
+                loralib
+              ];
+              explain = [
+                captum
+              ];
+              extra =
+                [
+                  horovod
+                  # TODO modin
+                  predibase
+                ]
+                ++ horovod.passthru.optional-dependencies.pytorch-deps;
+              tree = [
+                lightgbm
+                lightgbm-ray
+                hummingbird-ml #>=0.4.8
+              ];
+              distributed =
+                [
+                  ray
+                  dask
+                ]
+                ++ python.pkgs.dask.passthru.optional-dependencies.dataframe
+                ++ python.pkgs.ray.passthru.optional-dependencies.tune-deps
+                ++ python.pkgs.ray.passthru.optional-dependencies.serve-deps
+                ++ python.pkgs.ray.passthru.optional-dependencies.data-deps;
+              hyperopt =
+                [
+                  ray
+                  hyperopt
+                ]
+                ++ (with python.pkgs.ray.passthru.optional-dependencies; [(tune-deps ++ serve-deps)]);
+              serve = [
+                uvicorn
+                httpx
+                fastapi
+                python-multipart
+                # TODO
+                #neuropod #==0.3.0rc6
+              ];
+              viz = [
+                matplotlib
+                seaborn
+                hiplot
+                ptitprince
+              ];
+            };
           };
         };
       };
