@@ -1,1 +1,6 @@
 result
+results/
+*.hdf5
+ludwigalpaca.*
+.lock_preprocessing
+
