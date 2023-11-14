@@ -3,7 +3,7 @@ base_model: mistralai/Mistral-7B-v0.1
 #base_model:  alexsherstinsky/Mistral-7B-v0.1-sharded
 
 quantization:
-  bits: 4
+  #bits: 8
 
 adapter:
   type: lora
