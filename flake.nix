@@ -844,10 +844,12 @@
                 --replace "ray[default,data,serve,tune]>=2.2.0,<2.4" "ray[default,data,serve,tune]>=2.2.0" \
             '';
 
-            doCheck = false; # TODO investigate integration tests failures
-            catchConflicts = false;
+            #dontWrapPythonPrograms = true;
 
-            propagatedBuildInputs = with python.pkgs;
+            doCheck = false; # TODO investigate integration tests failures
+            catchConflicts = true;
+
+            propagatedBuildInputs = with final;
               [
                 cython #>=0.25
                 h5py #>=2.6,!=3.0.0
@@ -876,7 +878,7 @@
                 marshmallow
                 marshmallow-jsonschema
                 marshmallow-dataclass #==8.5.4
-                tensorboard
+                tensorboardx
                 nltk # Required for rouge scores.
                 torchmetrics #>=0.11.0
                 torchinfo
@@ -890,6 +892,7 @@
                 retry
 
                 #llm
+                accelerate
 
                 # required for TransfoXLTokenizer when using transformer_xl
                 sacremoses
@@ -914,7 +917,7 @@
                 lxml
                 html5lib
               ]
-              ++ python.pkgs.fsspec.passthru.optional-dependencies.http;
+              ++ final.fsspec.passthru.optional-dependencies.http;
 
             pythonImportsCheck = [
               "ludwig"
@@ -924,11 +927,11 @@
               export HOME=$(mktemp -d)
             '';
 
-            nativeCheckInputs = with python.pkgs;
+            nativeCheckInputs = with final;
               [
                 pytestCheckHook
                 pytest
-                pytest-timeout
+                #pytest-timeout
                 wget
                 six #>=1.13.0
                 #aim
@@ -936,16 +939,9 @@
                 #comet_ml
                 mlflow
               ]
-              ++ passthru.optional-dependencies.llm
-              ++ passthru.optional-dependencies.hyperopt
-              ++ passthru.optional-dependencies.viz
-              ++ passthru.optional-dependencies.distributed
-              ++ passthru.optional-dependencies.serve
-              ++ passthru.optional-dependencies.tree
-              ++ passthru.optional-dependencies.explain
-              ++ passthru.optional-dependencies.extra;
+              ++ passthru.optional-dependencies.full;
 
-            passthru.optional-dependencies = with python.pkgs; {
+            passthru.optional-dependencies = with final; rec {
               llm = [
                 peft
                 accelerate
@@ -953,9 +949,11 @@
                 faiss
                 loralib
               ];
+
               explain = [
                 captum
               ];
+
               extra =
                 [
                   horovod
@@ -963,26 +961,31 @@
                   predibase
                 ]
                 ++ horovod.passthru.optional-dependencies.pytorch-deps;
+
               tree = [
                 lightgbm
                 lightgbm-ray
                 hummingbird-ml #>=0.4.8
               ];
+
               distributed =
                 [
                   ray
                   dask
                 ]
-                ++ python.pkgs.dask.passthru.optional-dependencies.dataframe
-                ++ python.pkgs.ray.passthru.optional-dependencies.tune-deps
-                ++ python.pkgs.ray.passthru.optional-dependencies.serve-deps
-                ++ python.pkgs.ray.passthru.optional-dependencies.data-deps;
+                ++ dask.passthru.optional-dependencies.dataframe
+                ++ ray.passthru.optional-dependencies.tune-deps
+                ++ ray.passthru.optional-dependencies.serve-deps
+                ++ ray.passthru.optional-dependencies.data-deps;
+
               hyperopt =
                 [
                   ray
-                  hyperopt
+                  final.hyperopt
                 ]
-                ++ (with python.pkgs.ray.passthru.optional-dependencies; [(tune-deps ++ serve-deps)]);
+                ++ ray.passthru.optional-dependencies.tune-deps
+                ++ ray.passthru.optional-dependencies.serve-deps;
+
               serve = [
                 uvicorn
                 httpx
@@ -991,18 +994,36 @@
                 # TODO
                 #neuropod #==0.3.0rc6
               ];
+
               viz = [
                 matplotlib
                 seaborn
                 hiplot
                 ptitprince
               ];
+
+              full =
+                llm
+                ++ explain
+                ++ extra
+                ++ tree
+                ++ distributed
+                ++ hyperopt
+                ++ serve
+                ++ viz;
             };
           };
+
+          ludwigFull = final.ludwig.overridePythonAttrs (old: {
+            doCheck = false;
+            propagatedBuildInputs =
+              old.propagatedBuildInputs ++ old.passthru.optional-dependencies.full;
+          });
         };
       };
+
       ludwig = python.pkgs.ludwig;
-      ludwig-app = python.pkgs.toPythonApplication python.pkgs.ludwig;
+      ludwig-app = with python.pkgs; toPythonApplication ludwigFull;
     in rec {
       packages = {
         ludwig = ludwig;
@@ -1016,11 +1037,19 @@
       };
       defaultPackage = ludwig;
       overlays.default = self: prev: {
-        ludwig = ludwig-app;
+        ludwig-cli = ludwig-app;
       };
       devShells.default = pkgs.mkShell {
-        packages = [
-          (python.withPackages (ps: [ps.pipdeptree ps.ludwig]))
+        buildInputs = [
+          ludwig-app
+          # (python.withPackages (
+          #   ps: [
+          #     ps.pipdeptree
+          #     ps.ludwig
+          #     ps.accelerate
+          #     ps.bitsandbytes
+          #   ]
+          # ))
         ];
       };
     });
